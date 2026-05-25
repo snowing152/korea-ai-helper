@@ -22,7 +22,7 @@ export async function POST(req) {
     const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const result = streamText({
-      model: google('gemini-2.0-flash'),
+      model: google('gemini-2.5-flash'),
       system: buildSystemPrompt({
         language: lang,
         pageContent: pageContent.slice(0, 4000),
