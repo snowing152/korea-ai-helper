@@ -23,6 +23,7 @@ export async function POST(req) {
 
     const result = streamText({
       model: google('gemini-2.5-flash'),
+      maxRetries: 0,
       system: buildSystemPrompt({
         language: lang,
         pageContent: pageContent.slice(0, 4000),
