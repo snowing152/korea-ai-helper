@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import MessageBubble from './MessageBubble';
@@ -13,6 +13,12 @@ export default function ChatWindow({ language, pageContent, setPageContent, url,
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/ask' }),
   });
+
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const send = useCallback(
     (text) => {
@@ -81,6 +87,7 @@ export default function ChatWindow({ language, pageContent, setPageContent, url,
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}

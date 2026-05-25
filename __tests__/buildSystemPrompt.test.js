@@ -1,8 +1,9 @@
 const { buildSystemPrompt } = require('../lib/buildSystemPrompt');
 
-test('includes language in prompt', () => {
+test('resolves language code to full name in prompt', () => {
   const prompt = buildSystemPrompt({ language: 'ru', pageContent: '', url: '', ragContext: '' });
-  expect(prompt).toContain('ru');
+  expect(prompt).toContain('Russian');
+  expect(prompt).not.toContain("User's language: ru");
 });
 
 test('includes url when provided', () => {

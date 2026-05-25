@@ -7,7 +7,6 @@ const config = {
   theme: {
     extend: {},
   },
-  plugins: [require('@tailwindcss/typography')],
 };
 
 module.exports = config;

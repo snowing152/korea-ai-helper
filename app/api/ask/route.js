@@ -1,4 +1,3 @@
-// app/api/ask/route.js
 import { streamText, convertToModelMessages } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { buildSystemPrompt } from '../../../lib/buildSystemPrompt';
@@ -7,20 +6,38 @@ import { getRagContext } from '../../../services/knowledgeBase';
 export const maxDuration = 30;
 
 export async function POST(req) {
-  const { messages, language = 'ru', pageContent = '', url = '' } = await req.json();
+  if (!process.env.GEMINI_API_KEY) {
+    return new Response(JSON.stringify({ error: 'API key not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
-  const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+  try {
+    const { messages, language = 'ru', pageContent = '', url = '' } = await req.json();
 
-  const result = streamText({
-    model: google('gemini-1.5-flash'),
-    system: buildSystemPrompt({
-      language,
-      pageContent: pageContent.slice(0, 4000),
-      url,
-      ragContext: getRagContext(),
-    }),
-    messages: await convertToModelMessages(messages),
-  });
+    const VALID_LANGS = ['ru', 'en', 'uz'];
+    const lang = VALID_LANGS.includes(language) ? language : 'en';
 
-  return result.toUIMessageStreamResponse();
+    const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+
+    const result = streamText({
+      model: google('gemini-1.5-flash'),
+      system: buildSystemPrompt({
+        language: lang,
+        pageContent: pageContent.slice(0, 4000),
+        url,
+        ragContext: getRagContext(),
+      }),
+      messages: await convertToModelMessages(messages),
+    });
+
+    return result.toUIMessageStreamResponse();
+  } catch (err) {
+    console.error('[/api/ask]', err);
+    return new Response(JSON.stringify({ error: 'AI request failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
