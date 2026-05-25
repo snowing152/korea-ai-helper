@@ -9,6 +9,8 @@ import QuickPrompts from './QuickPrompts';
 export default function ChatWindow({ language, pageContent, setPageContent, url, setUrl }) {
   const [input, setInput] = useState('');
   const [showPaste, setShowPaste] = useState(false);
+  const [pendingImage, setPendingImage] = useState(null); // { dataUrl, mimeType }
+  const fileInputRef = useRef(null);
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/ask' }),
@@ -20,18 +22,43 @@ export default function ChatWindow({ language, pageContent, setPageContent, url,
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPendingImage({ dataUrl: reader.result, mimeType: file.type });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const send = useCallback(
-    (text) => {
-      sendMessage({ text }, { body: { language, pageContent, url } });
+    (text, image) => {
+      if (image) {
+        sendMessage(
+          {
+            role: 'user',
+            parts: [
+              { type: 'file', mediaType: image.mimeType, url: image.dataUrl },
+              { type: 'text', text },
+            ],
+          },
+          { body: { language, pageContent, url } },
+        );
+      } else {
+        sendMessage({ text }, { body: { language, pageContent, url } });
+      }
     },
     [sendMessage, language, pageContent, url],
   );
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    send(input);
+    if (!input.trim() && !pendingImage) return;
+    send(input, pendingImage);
     setInput('');
+    setPendingImage(null);
   };
 
   const isLoading = status === 'submitted' || status === 'streaming';
@@ -90,9 +117,43 @@ export default function ChatWindow({ language, pageContent, setPageContent, url,
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Image preview */}
+      {pendingImage && (
+        <div className="px-4 py-2 border-t bg-white flex items-center gap-2">
+          <img
+            src={pendingImage.dataUrl}
+            alt="pending attachment"
+            className="h-16 w-16 object-cover rounded-lg border"
+          />
+          <button
+            type="button"
+            onClick={() => setPendingImage(null)}
+            className="text-xs text-red-500 hover:text-red-700"
+          >
+            Remove
+          </button>
+        </div>
+      )}
+
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t bg-white">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageSelect}
+        />
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            className="text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-40 text-xl px-1"
+            title="Attach image"
+          >
+            📷
+          </button>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -102,7 +163,7 @@ export default function ChatWindow({ language, pageContent, setPageContent, url,
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || (!input.trim() && !pendingImage)}
             className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium disabled:opacity-40 hover:bg-blue-700 transition-colors"
           >
             Send

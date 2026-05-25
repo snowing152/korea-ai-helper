@@ -6,11 +6,21 @@ export default function MessageBubble({ role, parts }) {
     .map(p => p.text)
     .join('');
 
+  const images = (parts ?? []).filter(p => p.type === 'file' && p.url);
+
   if (role === 'user') {
     return (
       <div className="flex justify-end mb-3">
-        <div className="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-2 max-w-[80%] text-sm whitespace-pre-wrap">
-          {text}
+        <div className="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-2 max-w-[80%] text-sm">
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={img.url}
+              alt="attachment"
+              className="rounded-lg mb-2 max-h-48 max-w-full"
+            />
+          ))}
+          {text && <p className="whitespace-pre-wrap">{text}</p>}
         </div>
       </div>
     );
