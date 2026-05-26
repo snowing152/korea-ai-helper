@@ -11,7 +11,7 @@ export default function MessageBubble({ role, parts }) {
   if (role === 'user') {
     return (
       <div className="flex justify-end mb-3">
-        <div className="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-2 max-w-[80%] text-sm">
+        <div className="bg-[#EDE9E3] text-[#1A1A1A] rounded-2xl rounded-br-sm px-4 py-2 max-w-[80%] text-sm">
           {images.map((img, i) => (
             <img
               key={i}
@@ -28,7 +28,7 @@ export default function MessageBubble({ role, parts }) {
 
   return (
     <div className="flex justify-start mb-3">
-      <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm prose prose-sm prose-p:my-1 prose-ul:my-1 prose-li:my-0">
+      <div className="bg-white border border-[#EDE9E3] rounded-2xl rounded-bl-sm px-4 py-3 max-w-[80%] text-sm prose prose-sm prose-p:my-1 prose-ul:my-1 prose-li:my-0 text-[#1A1A1A]">
         <ReactMarkdown>{text}</ReactMarkdown>
       </div>
     </div>
