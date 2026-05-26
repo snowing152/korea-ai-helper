@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 import ChatWindow from '../components/ChatWindow';
-import LanguageSelector from '../components/LanguageSelector';
 import SiteLinks from '../components/SiteLinks';
 
 export default function Home() {
-  const [language, setLanguage] = useState('ru');
   const [pageContent, setPageContent] = useState('');
   const [url, setUrl] = useState('');
 
@@ -18,7 +16,6 @@ export default function Home() {
           <h1 className="text-base font-semibold text-[#1A1A1A]">Korea AI Helper</h1>
           <p className="text-xs text-[#9CA3AF]">Navigate Korean government sites</p>
         </div>
-        <LanguageSelector language={language} setLanguage={setLanguage} />
       </header>
 
       {/* Site links */}
@@ -26,7 +23,6 @@ export default function Home() {
 
       {/* Chat — takes remaining height */}
       <ChatWindow
-        language={language}
         pageContent={pageContent}
         setPageContent={setPageContent}
         url={url}

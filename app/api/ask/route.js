@@ -14,10 +14,7 @@ export async function POST(req) {
   }
 
   try {
-    const { messages, language = 'ru', pageContent = '', url = '' } = await req.json();
-
-    const VALID_LANGS = ['ru', 'en', 'uz'];
-    const lang = VALID_LANGS.includes(language) ? language : 'en';
+    const { messages, pageContent = '', url = '' } = await req.json();
 
     const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -25,7 +22,6 @@ export async function POST(req) {
       model: google('gemini-2.5-flash'),
       maxRetries: 0,
       system: buildSystemPrompt({
-        language: lang,
         pageContent: pageContent.slice(0, 4000),
         url,
         ragContext: getRagContext(),

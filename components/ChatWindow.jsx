@@ -6,7 +6,7 @@ import { DefaultChatTransport } from 'ai';
 import MessageBubble from './MessageBubble';
 import QuickPrompts from './QuickPrompts';
 
-export default function ChatWindow({ language, pageContent, setPageContent, url, setUrl }) {
+export default function ChatWindow({ pageContent, setPageContent, url, setUrl }) {
   const [input, setInput] = useState('');
   const [showPaste, setShowPaste] = useState(false);
   const [pendingImage, setPendingImage] = useState(null); // { dataUrl, mimeType }
@@ -45,13 +45,13 @@ export default function ChatWindow({ language, pageContent, setPageContent, url,
               { type: 'text', text },
             ],
           },
-          { body: { language, pageContent, url } },
+          { body: { pageContent, url } },
         );
       } else {
-        sendMessage({ text }, { body: { language, pageContent, url } });
+        sendMessage({ text }, { body: { pageContent, url } });
       }
     },
-    [sendMessage, language, pageContent, url],
+    [sendMessage, pageContent, url],
   );
 
   const handleSubmit = () => {
