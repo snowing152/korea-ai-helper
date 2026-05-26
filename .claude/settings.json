@@ -6,7 +6,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(npm run *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(npm test *)"
     ]
   }
 }
