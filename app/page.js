@@ -1,4 +1,3 @@
-// app/page.jsx  (or app/page.js)
 'use client';
 
 import { useState } from 'react';
@@ -12,12 +11,12 @@ export default function Home() {
   const [url, setUrl] = useState('');
 
   return (
-    <div className="flex flex-col h-screen max-w-lg mx-auto bg-white shadow-sm">
+    <div className="flex flex-col h-screen max-w-lg mx-auto bg-[#FAF9F5]">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b bg-white">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-[#EDE9E3] bg-white">
         <div>
-          <h1 className="text-base font-semibold text-gray-900">Korea AI Helper</h1>
-          <p className="text-xs text-gray-500">Navigate Korean government sites</p>
+          <h1 className="text-base font-semibold text-[#1A1A1A]">Korea AI Helper</h1>
+          <p className="text-xs text-[#9CA3AF]">Navigate Korean government sites</p>
         </div>
         <LanguageSelector language={language} setLanguage={setLanguage} />
       </header>
