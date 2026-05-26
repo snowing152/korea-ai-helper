@@ -6,12 +6,23 @@ import { DefaultChatTransport } from 'ai';
 import MessageBubble from './MessageBubble';
 import QuickPrompts from './QuickPrompts';
 
+const ATTACH_ITEMS = [
+  { id: 'photo',    icon: '🖼️', label: 'Photo',        desc: 'Screenshot or image' },
+  { id: 'pdf',      icon: '📄', label: 'Document',     desc: 'PDF file' },
+  { id: 'paste',   icon: '📋', label: 'Paste text',   desc: 'Copy-pasted page content' },
+  { id: 'url',      icon: '🔗', label: 'Website URL',  desc: 'Link to a Korean gov page' },
+];
+
 export default function ChatWindow({ pageContent, setPageContent, url, setUrl }) {
   const [input, setInput] = useState('');
   const [showPaste, setShowPaste] = useState(false);
-  const [pendingImage, setPendingImage] = useState(null); // { dataUrl, mimeType }
-  const fileInputRef = useRef(null);
+  const [pendingFile, setPendingFile] = useState(null); // { dataUrl, mimeType, name, isImage }
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+
+  const imageInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
   const textareaRef = useRef(null);
+  const attachMenuRef = useRef(null);
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: '/api/ask' }),
@@ -23,25 +34,43 @@ export default function ChatWindow({ pageContent, setPageContent, url, setUrl })
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleImageSelect = (e) => {
+  useEffect(() => {
+    if (!showAttachMenu) return;
+    const handler = (e) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target)) {
+        setShowAttachMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showAttachMenu]);
+
+  const handleFileSelect = (e, isImage) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setPendingImage({ dataUrl: reader.result, mimeType: file.type });
+      setPendingFile({ dataUrl: reader.result, mimeType: file.type, name: file.name, isImage });
     };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
 
+  const handleAttachItem = (id) => {
+    setShowAttachMenu(false);
+    if (id === 'photo') imageInputRef.current?.click();
+    else if (id === 'pdf') pdfInputRef.current?.click();
+    else setShowPaste(true);
+  };
+
   const send = useCallback(
-    (text, image) => {
-      if (image) {
+    (text, file) => {
+      if (file) {
         sendMessage(
           {
             role: 'user',
             parts: [
-              { type: 'file', mediaType: image.mimeType, url: image.dataUrl },
+              { type: 'file', mediaType: file.mimeType, url: file.dataUrl },
               { type: 'text', text },
             ],
           },
@@ -55,10 +84,10 @@ export default function ChatWindow({ pageContent, setPageContent, url, setUrl })
   );
 
   const handleSubmit = () => {
-    if (!input.trim() && !pendingImage) return;
-    send(input, pendingImage);
+    if (!input.trim() && !pendingFile) return;
+    send(input, pendingFile);
     setInput('');
-    setPendingImage(null);
+    setPendingFile(null);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -68,23 +97,18 @@ export default function ChatWindow({ pageContent, setPageContent, url, setUrl })
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* Paste area toggle */}
-      <div className="px-4 py-2 border-b border-[#EDE9E3] bg-white flex items-center gap-2">
-        <button
-          onClick={() => setShowPaste(v => !v)}
-          className="text-xs text-[#D97706] hover:underline"
-        >
-          {showPaste ? 'Hide paste area ▲' : 'Paste page content ▼'}
-        </button>
-        {pageContent && (
-          <span className="text-xs text-[#9CA3AF]">
-            {pageContent.length} chars pasted
-          </span>
-        )}
-      </div>
-
+      {/* Collapsible paste area — opened from + menu */}
       {showPaste && (
-        <div className="px-4 py-2 border-b border-[#EDE9E3] bg-white">
+        <div className="px-4 py-3 border-b border-[#EDE9E3] bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-[#9CA3AF]">Page context</span>
+            <button
+              onClick={() => setShowPaste(false)}
+              className="text-xs text-[#9CA3AF] hover:text-[#1A1A1A] leading-none"
+            >
+              ✕
+            </button>
+          </div>
           <textarea
             value={pageContent}
             onChange={(e) => setPageContent(e.target.value)}
@@ -98,6 +122,9 @@ export default function ChatWindow({ pageContent, setPageContent, url, setUrl })
             placeholder="Page URL (optional)"
             className="w-full text-xs border border-[#EDE9E3] rounded-lg px-2 py-1 mt-1 focus:outline-none focus:ring-2 focus:ring-[#D97706]"
           />
+          {pageContent && (
+            <p className="text-xs text-[#9CA3AF] mt-1">{pageContent.length} chars pasted</p>
+          )}
         </div>
       )}
 
@@ -120,32 +147,48 @@ export default function ChatWindow({ pageContent, setPageContent, url, setUrl })
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Image preview */}
-      {pendingImage && (
-        <div className="px-4 py-2 border-t border-[#EDE9E3] bg-white flex items-center gap-2">
-          <img
-            src={pendingImage.dataUrl}
-            alt="pending attachment"
-            className="h-16 w-16 object-cover rounded-lg border border-[#EDE9E3]"
-          />
+      {/* Pending attachment preview */}
+      {pendingFile && (
+        <div className="px-4 py-2 border-t border-[#EDE9E3] bg-white flex items-center gap-3">
+          {pendingFile.isImage ? (
+            <img
+              src={pendingFile.dataUrl}
+              alt="pending"
+              className="h-12 w-12 object-cover rounded-lg border border-[#EDE9E3] shrink-0"
+            />
+          ) : (
+            <div className="flex items-center gap-2 bg-[#F5F3EF] rounded-lg px-3 py-2 min-w-0">
+              <span className="text-base shrink-0">📄</span>
+              <span className="text-xs text-[#1A1A1A] truncate">{pendingFile.name}</span>
+            </div>
+          )}
           <button
             type="button"
-            onClick={() => setPendingImage(null)}
-            className="text-xs text-red-400 hover:text-red-600"
+            onClick={() => setPendingFile(null)}
+            className="text-xs text-red-400 hover:text-red-600 ml-auto shrink-0"
           >
             Remove
           </button>
         </div>
       )}
 
-      {/* Claude-style textarea input */}
+      {/* Hidden file inputs */}
       <input
-        ref={fileInputRef}
+        ref={imageInputRef}
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={handleImageSelect}
+        onChange={(e) => handleFileSelect(e, true)}
       />
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        className="hidden"
+        onChange={(e) => handleFileSelect(e, false)}
+      />
+
+      {/* Input bar */}
       <div className="p-3 bg-[#FAF9F5]">
         <div className="bg-white border border-[#DDDDDD] rounded-2xl px-4 py-3 shadow-sm">
           <textarea
@@ -167,20 +210,44 @@ export default function ChatWindow({ pageContent, setPageContent, url, setUrl })
             rows={1}
             className="w-full resize-none text-sm focus:outline-none bg-transparent text-[#1A1A1A] placeholder-[#C0BBB5] max-h-40 overflow-y-auto disabled:opacity-50"
           />
+
           <div className="flex justify-between items-center mt-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading}
-              className="text-[#BBBBBB] hover:text-[#D97706] transition-colors disabled:opacity-40 text-lg"
-              title="Attach image"
-            >
-              📷
-            </button>
+            {/* + button with attach menu */}
+            <div className="relative" ref={attachMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowAttachMenu((v) => !v)}
+                disabled={isLoading}
+                className="w-7 h-7 rounded-full border border-[#DDDDDD] bg-[#F5F3EF] text-[#888888] hover:bg-[#EDE9E3] hover:text-[#D97706] flex items-center justify-center transition-colors disabled:opacity-40 text-lg font-light leading-none select-none"
+                title="Add attachment"
+              >
+                +
+              </button>
+
+              {showAttachMenu && (
+                <div className="absolute bottom-9 left-0 bg-white border border-[#EDE9E3] rounded-2xl shadow-xl overflow-hidden w-56 py-1 z-20">
+                  {ATTACH_ITEMS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleAttachItem(item.id)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#FAF9F5] transition-colors"
+                    >
+                      <span className="text-lg shrink-0">{item.icon}</span>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-[#1A1A1A]">{item.label}</div>
+                        <div className="text-xs text-[#9CA3AF]">{item.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isLoading || (!input.trim() && !pendingImage)}
+              disabled={isLoading || (!input.trim() && !pendingFile)}
               className="bg-[#D97706] disabled:bg-[#E5E0D8] text-white disabled:text-[#9CA3AF] rounded-lg w-7 h-7 flex items-center justify-center transition-colors text-sm font-bold"
             >
               ↑
